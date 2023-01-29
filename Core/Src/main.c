@@ -117,23 +117,23 @@ int main(void)
   /* USER CODE BEGIN 2 */
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
-	status = xTaskCreate(menu_task, "menu_task", 100, NULL, 2, &handle_menu_task);
+	status = xTaskCreate(menu_task, "menu_task", 128, NULL, 2, &handle_menu_task);
 
 	configASSERT(status == pdPASS);
 
-	status = xTaskCreate(cmd_handler_task, "cmd_task", 100, NULL, 2, &handle_cmd_task);
+	status = xTaskCreate(cmd_handler_task, "cmd_task", 128, NULL, 2, &handle_cmd_task);
 
 	configASSERT(status == pdPASS);
 
-	status = xTaskCreate(print_task, "print_task", 100, NULL, 2, &handle_print_task);
+	status = xTaskCreate(print_task, "print_task", 128, NULL, 2, &handle_print_task);
 
 	configASSERT(status == pdPASS);
 
-	status = xTaskCreate(led_task, "led_task", 100, NULL, 2, &handle_led_task);
+	status = xTaskCreate(led_task, "led_task", 128, NULL, 2, &handle_led_task);
 
 	configASSERT(status == pdPASS);
 
-	status = xTaskCreate(rtc_task, "rtc_task", 100, NULL, 2, &handle_rtc_task);
+	//status = xTaskCreate(rtc_task, "rtc_task", 128, NULL, 2, &handle_rtc_task);
 
 	configASSERT(status == pdPASS);
 
@@ -247,38 +247,48 @@ void led_effect_callback(xTimerHandle xTimer)
 }
 
 
-/* This function called from UART interrupt handler , hence executes in interrupt context */
+/*
+ * This function is called from the UART interrupt handler, hence it executes in interrupt context.
+ * It handles received data bytes from the UART and enqueues them in a queue, as well as notifying
+ * a command handling task when a new line character is received.
+ */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	uint8_t dummy;
+    // Local variable to temporarily hold a data byte when needed
+    uint8_t dummy;
 
-	for(uint32_t i = 0 ; i < 4000 ; i++);
+    // Delay to allow other interrupts to be handled
+    for(uint32_t i = 0 ; i < 4000 ; i++);
 
-	if(! xQueueIsQueueFullFromISR(q_data))
-	{
-		/*Enqueue data byte */
-		xQueueSendFromISR(q_data , (void*)&user_data , NULL);
-	}else{
-		if(user_data == '\n')
-		{
-			/*Make sure that last data byte of the queue is '\n' */
-			xQueueReceiveFromISR(q_data,(void*)&dummy,NULL);
-			xQueueSendFromISR(q_data ,(void*)&user_data , NULL);
-		}
-	}
+    // Check if the queue is not full
+    if(! xQueueIsQueueFullFromISR(q_data))
+    {
+        // Enqueue received data byte
+        xQueueSendFromISR(q_data , (void*)&user_data , NULL);
+    }
+    else
+    {
+        // If the queue is full, check if the received data byte is a new line character
+        if(user_data == '\n')
+        {
+            // Dequeue the last data byte from the queue
+            xQueueReceiveFromISR(q_data,(void*)&dummy,NULL);
 
-	/*Send notification to command handling task if user_data = '\n' */
-	if( user_data == '\n' ){
-		/*send notification to command handling task */
-		xTaskNotifyFromISR (handle_cmd_task,0,eNoAction,NULL);
-	}
+            // Enqueue the new line character
+            xQueueSendFromISR(q_data ,(void*)&user_data , NULL);
+        }
+    }
 
-	/* Enable UART data byte reception again in IT mode */
-	 HAL_UART_Receive_IT(&huart2, (uint8_t*)&user_data, 1);
+    // Check if the received data byte is a new line character
+    if( user_data == '\n' )
+    {
+        // Send notification to command handling task
+        xTaskNotifyFromISR (handle_cmd_task,0,eNoAction,NULL);
+    }
 
-
+    // Enable UART data byte reception again in IT mode
+    HAL_UART_Receive_IT(&huart2, (uint8_t*)&user_data, 1);
 }
-
 /* USER CODE END 4 */
 
 /**
