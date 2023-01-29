@@ -1,5 +1,4 @@
 #include "main.h"
-
 #include "FreeRTOS.h"
 
 int extract_command(command_t *cmd);
@@ -7,58 +6,59 @@ void process_command(command_t *cmd);
 const char *msg_inv = "////Invalid option////\n";
 
 void menu_task(void *param)
-{uint32_t cmd_addr;
+{
+	uint32_t cmd_addr;
 
-command_t *cmd;
+	command_t *cmd;
 
-int option;
+	int option;
 
-const char* msg_menu = "\n========================\n"
-						"|         Menu         |\n"
-						"========================\n"
-							"LED effect    ----> 0\n"
-							"Date and time ----> 1\n"
-							"Exit          ----> 2\n"
-							"Enter your choice here : ";
+	const char* msg_menu = "\n========================\n"
+							"|         Menu         |\n"
+							"========================\n"
+								"LED effect    ----> 0\n"
+								"Date and time ----> 1\n"
+								"Exit          ----> 2\n"
+								"Enter your choice here : ";
 
-while(1){
-	xQueueSend(q_print,&msg_menu,portMAX_DELAY);
+	while(1){
+		xQueueSend(q_print,&msg_menu,portMAX_DELAY);
 
-	//wait for menu commands
-	xTaskNotifyWait(0,0,&cmd_addr,portMAX_DELAY);
-	cmd = (command_t*)cmd_addr;
+		//wait for menu commands
+		xTaskNotifyWait(0,0,&cmd_addr,portMAX_DELAY);
+		cmd = (command_t*)cmd_addr;
 
-	if(cmd->len == 1)
-	{
-		option = cmd->payload[0] - 48;
-		switch(option)
-		{
-			case 0:
-				curr_state = sLedEffect;
-				xTaskNotify(handle_led_task,0,eNoAction);
-				break;
-			case 1:
-				curr_state = sRtcMenu;
-				xTaskNotify(handle_rtc_task,0,eNoAction);
-				break;
-			case 2: /*implement exit */
-				break;
-			default:
-				xQueueSend(q_print,&msg_inv,portMAX_DELAY);
-				continue;
+		if(cmd->len == 1)
+		{   // ascii conversion  0 is 48 so converting the 48 to 0, 49 to 1 and so on
+			option = cmd->payload[0] - 48;
+			switch(option)
+			{
+				case 0:
+					curr_state = sLedEffect;
+					xTaskNotify(handle_led_task,0,eNoAction);
+					break;
+				case 1:
+					curr_state = sRtcMenu;
+					xTaskNotify(handle_rtc_task,0,eNoAction);
+					break;
+				case 2: /*implement exit */
+					break;
+				default:
+					xQueueSend(q_print,&msg_inv,portMAX_DELAY);
+					continue;
+			}
+
+		}else{
+			//invalid entry
+			xQueueSend(q_print,&msg_inv,portMAX_DELAY);
+			continue;
 		}
 
-	}else{
-		//invalid entry
-		xQueueSend(q_print,&msg_inv,portMAX_DELAY);
-		continue;
-	}
 
+		//wait to run again when some other task notifies
+		xTaskNotifyWait(0,0,NULL,portMAX_DELAY);
 
-	//wait to run again when some other task notifies
-	xTaskNotifyWait(0,0,NULL,portMAX_DELAY);
-
-}//while super loop
+	  }//while super loop
 }
 void led_task(void *param)
 {
