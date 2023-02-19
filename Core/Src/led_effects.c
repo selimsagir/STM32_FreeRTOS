@@ -93,6 +93,6 @@ void LED_effect3()
 }
 void LED_effect4()
 {
-	HAL_GPIO_WritePin(LD6_GPIO_Port, LD6_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LD6_GPIO_Port, LD6_Pin, GPIO_PIN_SET);
 }
 

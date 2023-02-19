@@ -147,7 +147,7 @@ int main(void)
 
   // create for timer for 4 led attribute
 
-  for ( int i = 0;  i < 4; ++ i) {
+  for ( int i = 0;  i < 4; i++) {
 	  handle_led_timer[i] = xTimerCreate("led_timer", pdMS_TO_TICKS(500), pdTRUE, (void*)(i+1), led_effect_callback);
 }
 
@@ -288,6 +288,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
     // Enable UART data byte reception again in IT mode
     HAL_UART_Receive_IT(&huart2, (uint8_t*)&user_data, 1);
+
 }
 /* USER CODE END 4 */
 
