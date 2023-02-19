@@ -31,8 +31,6 @@
 /* USER CODE BEGIN Includes */
 
 
-
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -117,6 +115,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
+/*
+ * freertos user configuration
+ * */
 	status = xTaskCreate(menu_task, "menu_task", 128, NULL, 2, &handle_menu_task);
 
 	configASSERT(status == pdPASS);
@@ -139,13 +140,13 @@ int main(void)
 
 	q_data = xQueueCreate (5, sizeof(char));
 
-//	configASSERT(q_data != NULL);
+	//	configASSERT(q_data != NULL);
 
 	q_print = xQueueCreate (5, sizeof(size_t));
 
-//	configASSERT(q_print != NULL);
+	//	configASSERT(q_print != NULL);
 
-  // create for timer for 4 led attribute
+	// create for timer for 4 led attribute
 
   for ( int i = 0;  i < 4; i++) {
 	  handle_led_timer[i] = xTimerCreate("led_timer", pdMS_TO_TICKS(500), pdTRUE, (void*)(i+1), led_effect_callback);
